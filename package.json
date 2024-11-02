@@ -8,8 +8,7 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "test": "jest",
-    "build": "node src/index.js",
-    "status": "echo 'Endpoint is active and ready!'"
+    "build": "node src/index.js"
   },
   "author": "Chirantha Siriwardhana",
   "license": "ISC",
