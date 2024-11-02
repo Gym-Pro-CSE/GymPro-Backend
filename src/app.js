@@ -36,7 +36,7 @@ app.use(requestPasswordResetRouter);
 app.use(resetPasswordRouter);
 
 app.get('/status', (req, res) => {
-    res.send('server running ver_2');
+    res.send('server running ver_3');
 });
 
 app.all("*", async (req, res) => {
