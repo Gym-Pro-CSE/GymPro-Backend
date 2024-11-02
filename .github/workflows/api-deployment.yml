@@ -30,7 +30,5 @@ jobs:
           npm install
           # npm run start
           npm i -g pm2
-          pm2 stop 0
-          pm2 start 0
-          pm2 save
+          pm2 start npm --name 'gympro' -- run start
           sudo service nginx restart
