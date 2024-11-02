@@ -35,10 +35,16 @@ app.use(deleteUserRouter);
 app.use(requestPasswordResetRouter);
 app.use(resetPasswordRouter);
 
+app.get('/example', (req, res) => {
+    res.send('server running');
+});
+
 app.all("*", async (req, res) => {
     //looks for the paths we dont have
     throw new NotFoundError();
 });
+
+
 
 export { app };
 
