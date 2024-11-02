@@ -35,8 +35,8 @@ app.use(deleteUserRouter);
 app.use(requestPasswordResetRouter);
 app.use(resetPasswordRouter);
 
-app.get('/example', (req, res) => {
-    res.send('server running');
+app.get('/status', (req, res) => {
+    res.send('server running ver_2');
 });
 
 app.all("*", async (req, res) => {
