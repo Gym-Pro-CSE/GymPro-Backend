@@ -1,0 +1,23 @@
+name: API Deployment
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    needs: build
+    steps:
+      - name: Checkout the repo
+        uses: actions/checkout@v3
+
+      - name: Config Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "20"
+      - run: |
+          npm install
+          npm run start
