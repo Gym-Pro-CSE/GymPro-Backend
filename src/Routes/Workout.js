@@ -164,86 +164,85 @@ router.post('/workouts' , authenticateToken , async(req , res)=>{
 });
 
 const extractAllWorkoutAccuracies = async (userEmail) => {
-    try {
-      const result = await User.aggregate([
-        // Match the specific user
-        { $match: { email: userEmail } },
-        
-        // Unwind the workouts array
-        { $unwind: "$workouts" },
-  
-        // Unwind the exercises array inside each workout
-        { $unwind: "$workouts.exercise" },
-  
-        // Group the exercises by workout date and create the accuracy objects
-        { 
-          $group: {
-            _id: "$workouts.date",  // Group by date
-            date: { $first: "$workouts.date" },
-            time: {$first: "$workouts.time"},
-            accuracy: { $push: { 
-              k: { $concat: [ "$workouts.exercise.e_name", "_accuracy" ] }, 
-              v: "$workouts.exercise.accuracy" 
+  try {
+    const result = await User.aggregate([
+      { $match: { email: userEmail } },
+      { $unwind: "$workouts" },
+      { $unwind: "$workouts.exercise" },
+
+      { 
+        $group: {
+          _id: "$workouts.date",  // Group by date
+          date: { $first: "$workouts.date" },
+          time: {$first: "$workouts.time"},
+          accuracy: { $push: { 
+            k: { $concat: [ "$workouts.exercise.e_name", "_accuracy" ] }, 
+            v: "$workouts.exercise.accuracy" 
+          } },
+          e_time: { $push: { 
+              k: { $concat: [ "$workouts.exercise.e_name", "_time" ] }, 
+              v: "$workouts.exercise.time" 
             } },
-            e_time: { $push: { 
-                k: { $concat: [ "$workouts.exercise.e_name", "_time" ] }, 
-                v: "$workouts.exercise.time" 
-              } },
-            e_reps: { $push: { 
-                k: { $concat: [ "$workouts.exercise.e_name", "_reps" ] }, 
-                v: "$workouts.exercise.reps" 
-            } }
+          e_reps: { 
+            $push: {
+              $cond: [
+                { $ne: [ "$workouts.exercise.e_name", "Plank" ] }, // Only add if exercise is not "plank"
+                { 
+                  k: { $concat: [ "$workouts.exercise.e_name", "_reps" ] }, 
+                  v: "$workouts.exercise.reps" 
+                },
+                null  // Return null if it's a plank
+              ]
+            }
           }
-        },
-  
-        // Project the final result into the required format
-        { 
-          $project: {
-            _id: 0,
-            date: 1,
-            time: 1,
-            accuracy: { $arrayToObject: "$accuracy" },
-            e_time: { $arrayToObject: "$e_time" },
-            e_reps: { $arrayToObject: "$e_reps" },
+        }
+      },
+
+      { 
+        $project: {
+          _id: 0,
+          date: 1,
+          time: 1,
+          accuracy: { $arrayToObject: "$accuracy" },
+          e_time: { $arrayToObject: "$e_time" },
+          e_reps: { 
+            $arrayToObject: { 
+              $filter: { input: "$e_reps", as: "item", cond: { $ne: [ "$$item", null ] } } // Remove nulls
+            }
           }
-        },
-  
-        // Sort by workout date (optional)
-        { $sort: { date: 1 } }
-      ]);
+        }
+      },
 
-    const temp = await User.findOne({email:userEmail}, {workouts:1});
-    const temp_workouts =temp.workouts
-      // Get the first and last workout dates
-    const firstWorkoutDate = new Date(temp_workouts[0].date);
-    const lastWorkoutDate = new Date(temp_workouts[temp_workouts.length - 1].date);
+      { $sort: { date: 1 } }
+    ]);
 
-    // Generate all dates between first and last workout date
-    const allDates = generateDateRange(firstWorkoutDate, lastWorkoutDate);
+  const temp = await User.findOne({email:userEmail}, {workouts:1});
+  const temp_workouts =temp.workouts;
+  const firstWorkoutDate = new Date(temp_workouts[0].date);
+  const lastWorkoutDate = new Date(temp_workouts[temp_workouts.length - 1].date);
 
-    // Create a map of dates for fast lookup of existing workout data
-    const workoutMap = new Map(result.map((workout) => [workout.date, workout]));
+  const allDates = generateDateRange(firstWorkoutDate, lastWorkoutDate);
+  const workoutMap = new Map(result.map((workout) => [workout.date, workout]));
 
-    // Create the final array with gaps filled
-    const final_result = allDates.map((date) => {
-      const dateString = date.toISOString().slice(0, 10); // Format as YYYY-MM-DD
-      const workout = workoutMap.get(dateString);
+  const final_result = allDates.map((date) => {
+    const dateString = date.toISOString().slice(0, 10);
+    const workout = workoutMap.get(dateString);
 
-      return workout || {
-        date: dateString,
-        time: 0,
-        accuracy: {},
-        e_time: {},
-        e_reps:{}
-      };
-    });
+    return workout || {
+      date: dateString,
+      time: 0,
+      accuracy: {},
+      e_time: {},
+      e_reps: {}
+    };
+  });
 
-      console.log(final_result);
-      return final_result;
-    } catch (err) {
-      console.log(err);
-    }
-  };
+    console.log(final_result);
+    return final_result;
+  } catch (err) {
+    console.log(err);
+  }
+};
 
 const generateDateRange = (startDate, endDate) => {
     const dates = [];
